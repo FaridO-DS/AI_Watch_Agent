@@ -1,0 +1,41 @@
+services:
+  ai-service:
+    build: 
+      context: ./ai-service
+      dockerfile: Dockerfile
+    container_name: watch-agent-fastapi
+    restart: always
+    env_file:
+      - ./ai-service/.env
+    ports:
+      - "8000:8000"
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'      # Assure un traitement fluide du scraping multi-pages
+          memory: 1.5G     # Limite réaliste pour Chromium sans risquer de tuer le conteneur
+    networks:
+      - mern-network
+    
+  backend:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: watch-agent-backend
+    restart: always       # Créez un Dockerfile simple dans votre dossier backend Express
+    ports:
+      - "5001:5001"        # Expose votre API Express sur le port 5001 du VPS
+    env_file: 
+      - ./backend/.env
+    deploy:
+      resources:
+        limits:
+          memory: 300M     # Un backend Node.js en production consomme un peu plus de 200M sous charge
+    depends_on:
+      - ai-service         # Attend que l'IA soit démarrée avant de lancer Express
+    networks:
+      - mern-network
+    
+networks:
+  mern-network:
+    driver: bridge
