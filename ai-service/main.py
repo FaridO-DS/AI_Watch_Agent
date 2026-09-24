@@ -7,11 +7,14 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
 from fastapi.middleware.cors import CORSMiddleware
 from crawl4ai import AsyncWebCrawler, BrowserConfig, CrawlerRunConfig
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = FastAPI(title="AI Tech Watch Agent powered by Crawl4AI")
 
 # Secure CORS handling with robust fallback string parsing
-frontend_origins = os.getenv("FRONTEND_ORIGINS", "")
+frontend_origins = os.getenv("FRONTEND_ORIGINS")
 allowed_origins = [origin.strip() for origin in frontend_origins.split(",") if origin.strip()]
 
 app.add_middleware(
@@ -58,7 +61,7 @@ class TechReport(BaseModel):
         )
     )
 
-@app.post("/api/watch", response_model=TechReport)
+@app.post("/watch", response_model=TechReport)
 async def run_tech_watch(request: WatchRequest):
     if not request.urls:
         raise HTTPException(status_code=400, detail="Please provide at least one valid target URL.")

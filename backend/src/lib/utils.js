@@ -27,8 +27,8 @@ export const generateToken = (userID, res) => {
     res.cookie('token', token, { 
         maxAge: SEVEN_DAYS_MS, 
         httpOnly: true, // Safeguards cookie from client-side XSS scripting theft
-        secure: process.env.NODE_ENV === 'production', 
-        sameSite: process.env.NODE_ENV === 'production' ? 'lax' : 'lax'
+        secure: true, 
+        sameSite: 'strict'
     });
     
     return token;

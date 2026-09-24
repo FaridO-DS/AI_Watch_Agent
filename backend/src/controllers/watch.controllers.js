@@ -29,7 +29,7 @@ export const watch = async (req, res) => {
         // 3. Requesting FastAPI microservice with extended timeout
         console.log(`[Watch Agent] Dispatching task for user ${userId} to FastAPI...`);
         
-        const aiResponse = await axios.post(`${ENV.FASTAPI_URL}/api/watch`, { 
+        const aiResponse = await axios.post(`${ENV.FASTAPI_URL}/watch`, { 
             topic,
             urls
         }, {

@@ -7,7 +7,7 @@ import { ENV } from "../lib/env.js";
 const COOKIE_OPTIONS = {
   httpOnly: true,
   secure: ENV.NODE_ENV === "production",
-  sameSite: "lax",
+  sameSite: "strict",
   path: "/" // Ensures token scoping remains uniform across entrypoints
 };
 

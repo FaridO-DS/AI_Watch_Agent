@@ -8,7 +8,7 @@ services:
     env_file:
       - ./ai-service/.env
     ports:
-      - "8000:8000"
+      - "8002:8000"
     deploy:
       resources:
         limits:
@@ -24,7 +24,7 @@ services:
     container_name: watch-agent-backend
     restart: always       # Créez un Dockerfile simple dans votre dossier backend Express
     ports:
-      - "5001:5001"        # Expose votre API Express sur le port 5001 du VPS
+      - "5002:5001"        # Expose votre API Express sur le port 5001 du VPS
     env_file: 
       - ./backend/.env
     deploy:
