@@ -28,7 +28,7 @@ app.use('/api/watch', watchRoutes);
 if (ENV.NODE_ENV === "production") {
     const disPath = path.join(process.cwd(),"dist");
     app.use(express.static(disPath));
-    app.get("*", (_, res) => {
+    app.get("*catchall", (_, res) => {
         res.sendFile(path.join(disPath, "index.html"), (err) => {
 	  if (err) {
 		console.error("Critical error when sending index.html :", err);
