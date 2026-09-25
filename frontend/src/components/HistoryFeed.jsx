@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Calendar, FileSpreadsheet, Search, SlidersHorizontal, ShieldAlert, Download } from 'lucide-react';
+import { Calendar, FileSpreadsheet, Search, SlidersHorizontal, ShieldAlert } from 'lucide-react';
 
 export default function HistoryFeed({ history }) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -54,30 +54,36 @@ export default function HistoryFeed({ history }) {
     document.body.removeChild(link);
   };
 
+  // FIXED: Replaced unsafe iframe injection with a robust production-ready Blob window approach
   const handlePrintSingle = (report) => {
     try {
-      // 1. Create an invisible iframe to handle clean print jobs without block popups
-      const iframe = document.createElement('iframe');
-      iframe.style.position = 'fixed';
-      iframe.style.right = '0';
-      iframe.style.bottom = '0';
-      iframe.style.width = '0';
-      iframe.style.height = '0';
-      iframe.style.border = '0';
-      
-      document.body.appendChild(iframe);
+      // 1. Validate data availability before proceeding
+      if (!report) {
+        console.warn("[Print Cancelled] No report object provided to handler.");
+        alert("The selected report cannot be processed.");
+        return;
+      }
 
-      const doc = iframe.contentWindow.document;
-      doc.open();
-      
-      // Build visual items safely matching the LiveReport schema
-      const urlsHtml = report.scraped_urls?.map(url => `<li><a href="${url}" target="_blank">${url}</a></li>`).join('') || '<li>No sources provided</li>';
+      console.log("[Print Debug] Processing historical report document initialization:", report);
+
+      // 2. Safe mapping of arrays to prevent undefined execution context crashes
+      const urlsHtml = report.scraped_urls?.map(url => `<li><a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a></li>`).join('') || '<li>No sources provided</li>';
       const trendsHtml = report.key_trends?.map(trend => `<li>${trend}</li>`).join('') || '<li>No explicit trends identified</li>';
       
-      doc.write(`
+      // 3. Prevent production timezone parsing bugs
+      let formattedDate = new Date().toLocaleString();
+      if (report.createdAt) {
+        const parsedDate = new Date(report.createdAt);
+        if (!isNaN(parsedDate.getTime())) {
+          formattedDate = parsedDate.toLocaleString();
+        }
+      }
+
+      // 4. Build isolated HTML document layout template structure
+      const htmlContent = `
         <html>
           <head>
-            <title>AI Watch Report - ${report.topic}</title>
+            <title>AI Watch Report - ${report.topic || 'Untitled'}</title>
             <style>
               body { font-family: system-ui, -apple-system, sans-serif; color: #1e293b; padding: 40px; line-height: 1.6; }
               h1 { color: #4f46e5; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 20px; font-size: 24px; }
@@ -95,8 +101,8 @@ export default function HistoryFeed({ history }) {
             <h1>AI Watch Agent Intelligence Report</h1>
             
             <div class="meta-box">
-              <span class="meta-title">Target Topic:</span> ${report.topic}<br/>
-              <span class="meta-title">Generated on:</span> ${report.createdAt ? new Date(report.createdAt).toLocaleString() : new Date().toLocaleString()}<br/>
+              <span class="meta-title">Target Topic:</span> ${report.topic || 'N/A'}<br/>
+              <span class="meta-title">Generated on:</span> ${formattedDate}<br/>
               <div class="impact-badge">Global Impact Score: ${report.impact_score || 0}/100</div>
             </div>
 
@@ -108,20 +114,30 @@ export default function HistoryFeed({ history }) {
 
             <h2>Identified Key Trends</h2>
             <ul>${trendsHtml}</ul>
+
+            <script>
+              window.onload = function() {
+                window.print();
+              };
+            </script>
           </body>
         </html>
-      `);
-      doc.close();
+      `;
 
-      iframe.contentWindow.focus();
-      iframe.contentWindow.print();
+      // 5. Generate sandboxed blob context payload to completely eliminate thread memory lockups
+      const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+      const blobURL = URL.createObjectURL(blob);
 
-      setTimeout(() => {
-        document.body.removeChild(iframe);
-      }, 1000);
+      // 6. Open standalone viewport panel container instance
+      const printWindow = window.open(blobURL, '_blank');
+      
+      if (!printWindow) {
+        alert("Please enable popup permissions for this application domain to proceed with printing.");
+      }
 
     } catch (printErr) {
-      console.error("[History Print Failure] Native iframe rendering failed:", printErr.message);
+      console.error("[History Print Failure] Document rendering process aborted:", printErr);
+      alert("Failed to initialize print engine framework sequence context layout mapping layout tree.");
     }
   };
 
@@ -178,35 +194,17 @@ export default function HistoryFeed({ history }) {
       ) : (
         <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2">
           {filteredHistory.map((report) => (
-            <div 
-              key={report.id || report._id || Math.random().toString()} 
-              className="p-4 bg-slate-950 border border-slate-800 rounded-lg hover:border-slate-700 transition group"
-            >
-              <div className="flex justify-between items-start gap-4 mb-2">
-                <div>
-                  <h4 className="font-semibold text-sm text-slate-200">{report.topic}</h4>
-                  <div className="flex items-center gap-2 mt-1 text-[10px] text-slate-500">
-                    <span>Impact: <strong className="text-indigo-400">{report.impact_score || 0}/100</strong></span>
-                    <span>•</span>
-                    <span>Sources: <strong>{report.scraped_urls?.length || 0} link(s)</strong></span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-xs text-slate-500 whitespace-nowrap">
-                    {report.createdAt ? new Date(report.createdAt).toLocaleDateString() : 'Recent'}
-                  </span>
-                  <button
-                    onClick={() => handlePrintSingle(report)}
-                    className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-indigo-400 text-xs transition flex items-center gap-0.5 p-1 bg-slate-900 border border-slate-800 rounded-md"
-                    title="Export to PDF"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                  </button>
-                </div>
+            <div key={report.id || report._id} className="p-4 bg-slate-950 border border-slate-800 rounded-lg flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-medium text-slate-200">{report.topic}</h3>
+                <p className="text-xs text-slate-400 mt-1 line-clamp-1">{report.summary}</p>
               </div>
-              <p className="text-xs text-slate-400 line-clamp-2 text-justify">
-                {report.summary || 'No summary text available.'}
-              </p>
+              <button 
+                onClick={() => handlePrintSingle(report)}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3 py-1.5 rounded transition"
+              >
+                Print Report
+              </button>
             </div>
           ))}
         </div>
